@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoJSON Map</title>
+    <!-- إضافة مكتبة Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script>
+        // إنشاء الخريطة وتحديد المركز والتكبير الافتراضي
+        const map = L.map('map').setView([31.902, 35.206], 13);
+
+        // إضافة طبقة الخريطة الأساسية
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // تحميل ملفات GeoJSON
+        const geojsonFiles = {
+            accidents: 'Accidents.geojson',
+            ramallah: 'Ramallah.geojson',
+            roads: 'Roads.geojson'
+        };
+
+        // دالة لتحميل وإضافة ملف GeoJSON إلى الخريطة
+        const loadGeoJSON = (file, color) => {
+            fetch(file)
+                .then(response => response.json())
+                .then(data => {
+                    L.geoJSON(data, {
+                        style: { color: color },
+                        onEachFeature: (feature, layer) => {
+                            if (feature.properties) {
+                                layer.bindPopup(Object.entries(feature.properties).map(([key, value]) => `<b>${key}:</b> ${value}`).join('<br>'));
+                            }
+                        }
+                    }).addTo(map);
+                })
+                .catch(error => console.error('Error loading GeoJSON:', error));
+        };
+
+        // إضافة الملفات إلى الخريطة بألوان مختلفة
+        loadGeoJSON(geojsonFiles.accidents, 'red'); // الحوادث باللون الأحمر
+        loadGeoJSON(geojsonFiles.ramallah, 'blue'); // رام الله باللون الأزرق
+        loadGeoJSON(geojsonFiles.roads, 'green'); // الطرق باللون الأخضر
+    </script>
+</body>
+</html>
