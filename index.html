@@ -110,6 +110,7 @@
 
                     if (name === 'Accidents') {
                         accidentsLayer = layer;
+                        layer.setZIndex(999); // تحديد zIndex عالٍ
                     }
 
                     layer.addTo(map);
