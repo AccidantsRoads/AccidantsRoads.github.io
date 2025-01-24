@@ -160,32 +160,47 @@
 
         searchBox.addTo(map);
 
-        // إضافة وظيفة البحث
+        // إضافة وظيفة البحث وحساب عدد الحوادث
         document.getElementById('searchButton').addEventListener('click', () => {
             const query = document.getElementById('searchInput').value.toLowerCase();
 
-            if (!roadsLayer) {
-                alert('Roads layer is not loaded yet. Please wait.');
+            if (!roadsLayer || !accidentsLayer) {
+                alert('One or both layers are not loaded yet. Please wait.');
                 return;
             }
 
             // البحث عن الشوارع داخل طبقة Roads
-            const matchingFeatures = [];
+            const matchingRoads = [];
             roadsLayer.eachLayer(layer => {
                 const roadName = layer.feature.properties.ROAD_N_A?.toLowerCase() || '';
                 if (roadName.includes(query)) {
-                    matchingFeatures.push(layer);
+                    matchingRoads.push(layer);
                 }
             });
 
-            if (matchingFeatures.length > 0) {
+            if (matchingRoads.length > 0) {
                 // تكبير الخريطة إلى العنصر الأول
-                const bounds = L.featureGroup(matchingFeatures).getBounds();
-                map.fitBounds(bounds, { padding: [20, 20] }); // إضافة padding للمزيد من المساحة حول العناصر
+                const bounds = L.featureGroup(matchingRoads).getBounds();
+                map.fitBounds(bounds, { padding: [20, 20] });
 
                 // فتح نافذة الـ popup تلقائيًا لأول نتيجة مطابقة مع عرض اسم الشارع فقط
-                const roadName = matchingFeatures[0].feature.properties.ROAD_N_A;
-                matchingFeatures[0].bindPopup(`<b>Street Name:</b> ${roadName}`).openPopup(); // فتح الـ popup مباشرة
+                const roadName = matchingRoads[0].feature.properties.ROAD_N_A;
+                matchingRoads[0].bindPopup(`<b>Street Name:</b> ${roadName}`).openPopup();
+
+                // حساب عدد الحوادث الواقعة على هذا الشارع
+                let accidentCount = 0;
+                accidentsLayer.eachLayer(accidentLayer => {
+                    const accidentLatLng = accidentLayer.getLatLng();
+                    // التحقق إذا كان الحادث يقع على نفس الشارع باستخدام المسافة بين الحادث والشارع
+                    matchingRoads.forEach(roadLayer => {
+                        if (roadLayer.getBounds().contains(accidentLatLng)) {
+                            accidentCount++;
+                        }
+                    });
+                });
+
+                // عرض عدد الحوادث في النافذة المنبثقة
+                alert(`Total accidents on "${query}" road: ${accidentCount}`);
             } else {
                 alert(`No roads found matching "${query}".`);
             }
