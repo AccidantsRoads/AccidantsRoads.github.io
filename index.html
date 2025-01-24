@@ -183,14 +183,9 @@
                 const bounds = L.featureGroup(matchingFeatures).getBounds();
                 map.fitBounds(bounds, { padding: [20, 20] }); // إضافة padding للمزيد من المساحة حول العناصر
 
-                // فتح نافذة الـ popup تلقائيًا لأول نتيجة
-                matchingFeatures.forEach((layer, index) => {
-                    if (index === 0) {
-                        layer.bindPopup(`
-                            <b>Road Name:</b> ${layer.feature.properties.ROAD_N_A || 'N/A'}<br>
-                            <b>Other Info:</b> ${layer.feature.properties.OTHER_INFO || 'N/A'}
-                        `).openPopup(); // فتح الـ popup لأول طبقة
-                    }
+                // فتح نافذة الـ popup تلقائيًا لكل العناصر المطابقة
+                matchingFeatures.forEach(layer => {
+                    layer.openPopup(); // فتح الـ popup بدون الحاجة للنقر
                 });
             } else {
                 alert(`No roads found matching "${query}".`);
