@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GeoJSON Map</title>
+    <title>Accidents Roads</title>
     <!-- إضافة مكتبة Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -12,6 +12,38 @@
             width: 100%;
             height: 100vh;
         }
+        .legend {
+            background-color: white;
+            padding: 10px;
+            line-height: 1.5;
+            font-size: 14px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+        .legend span {
+            display: inline-block;
+            width: 20px;
+            height: 10px;
+            margin-right: 8px;
+        }
+        .search-box {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            font-size: 14px;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+        }
+        .search-box input {
+            width: 200px;
+            padding: 5px;
+        }
+        .search-box button {
+            padding: 5px;
+        }
     </style>
 </head>
 <body>
@@ -19,7 +51,7 @@
 
     <script>
         // إنشاء الخريطة وتحديد المركز والتكبير الافتراضي
-        const map = L.map('map').setView([31.902, 35.206], 13);
+        const map = L.map('map').setView([31.9051503, 35.1921579], 15);
 
         // إضافة طبقة الخريطة الأساسية
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -28,33 +60,109 @@
         }).addTo(map);
 
         // تحميل ملفات GeoJSON
-        const geojsonFiles = {
-            accidentss: 'Accidentss.geojson',
-            ramallah: 'Ramallah.geojson',
-            roads: 'Roads.geojson'
-        };
+        const geojsonFiles = [
+            { file: 'Accidents.geojson', color: 'red', name: 'Accidents' },
+            { file: 'Ramallah.geojson', color: 'orange', name: 'Ramallah' },
+            { file: 'Roads.geojson', color: 'black', name: 'Roads' }
+        ];
+
+        let roadsLayer;
 
         // دالة لتحميل وإضافة ملف GeoJSON إلى الخريطة
-        const loadGeoJSON = (file, color) => {
+        const loadGeoJSON = ({ file, color, name }) => {
             fetch(file)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error loading ${name}: ${response.status} ${response.statusText}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    L.geoJSON(data, {
+                    const layer = L.geoJSON(data, {
                         style: { color: color },
                         onEachFeature: (feature, layer) => {
                             if (feature.properties) {
-                                layer.bindPopup(Object.entries(feature.properties).map(([key, value]) => `<b>${key}:</b> ${value}`).join('<br>'));
+                                layer.bindPopup(Object.entries(feature.properties)
+                                    .map(([key, value]) => `<b>${key}:</b> ${value}`)
+                                    .join('<br>'));
                             }
                         }
-                    }).addTo(map);
+                    });
+
+                    if (name === 'Roads') {
+                        roadsLayer = layer;
+                    }
+
+                    layer.addTo(map);
+                    console.log(`${name} loaded successfully`);
                 })
-                .catch(error => console.error('Error loading GeoJSON:', error));
+                .catch(error => {
+                    console.error(`Error loading ${name}:`, error);
+                });
         };
 
-        // إضافة الملفات إلى الخريطة بألوان مختلفة
-        loadGeoJSON(geojsonFiles.accidentss, 'red'); // الحوادث باللون الأحمر
-        loadGeoJSON(geojsonFiles.ramallah, 'blue'); // رام الله باللون الأزرق
-        loadGeoJSON(geojsonFiles.roads, 'green'); // الطرق باللون الأخضر
+        // تحميل جميع الطبقات
+        geojsonFiles.forEach(loadGeoJSON);
+
+        // إضافة وسيلة الإيضاح (Legend)
+        const legend = L.control({ position: 'bottomright' });
+
+        legend.onAdd = () => {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `
+                <h4>Legend</h4>
+                <div><span style="background: blue"></span> Accidents</div>
+                <div><span style="background: orange"></span> Ramallah</div>
+                <div><span style="background: black"></span> Roads</div>
+            `;
+            return div;
+        };
+
+        legend.addTo(map);
+
+        // إنشاء مربع البحث
+        const searchBox = L.control({ position: 'topleft' });
+
+        searchBox.onAdd = () => {
+            const div = L.DomUtil.create('div', 'search-box');
+            div.innerHTML = `
+                <input type="text" id="searchInput" placeholder="Search for a road..." />
+                <button id="searchButton">Search</button>
+            `;
+            return div;
+        };
+
+        searchBox.addTo(map);
+
+        // إضافة وظيفة البحث
+        document.getElementById('searchButton').addEventListener('click', () => {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+
+            if (!roadsLayer) {
+                alert('Roads layer is not loaded yet. Please wait.');
+                return;
+            }
+
+            // البحث عن الشوارع داخل طبقة Roads
+            const matchingFeatures = [];
+            roadsLayer.eachLayer(layer => {
+                const roadName = layer.feature.properties.ROAD_N_A?.toLowerCase() || '';
+                if (roadName.includes(query)) {
+                    matchingFeatures.push(layer);
+                }
+            });
+
+            if (matchingFeatures.length > 0) {
+                // تكبير الخريطة إلى العنصر الأول وتحديده
+                const bounds = L.featureGroup(matchingFeatures).getBounds();
+                map.fitBounds(bounds);
+
+                // فتح الـ popup لأول نتيجة
+                matchingFeatures[0].openPopup();
+            } else {
+                alert(`No roads found matching "${query}".`);
+            }
+        });
     </script>
 </body>
 </html>
