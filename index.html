@@ -185,7 +185,7 @@
 
                 // فتح نافذة الـ popup تلقائيًا لأول نتيجة مطابقة مع عرض اسم الشارع فقط
                 const roadName = matchingFeatures[0].feature.properties.ROAD_N_A;
-                matchingFeatures[0].openPopup(); // فتح الـ popup مباشرة
+                matchingFeatures[0].bindPopup(`<b>Street Name:</b> ${roadName}`).openPopup(); // فتح الـ popup مباشرة
             } else {
                 alert(`No roads found matching "${query}".`);
             }
