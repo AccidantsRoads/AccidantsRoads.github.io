@@ -80,21 +80,20 @@
                 .then(data => {
                     const layer = L.geoJSON(data, {
                         pointToLayer: (feature, latlng) => {
-                            // استخدام دائرة بدلاً من علامة افتراضية للحوادث
                             if (name === 'Accidents') {
                                 return L.circleMarker(latlng, {
-                                    radius: 5, // حجم النقطة
-                                    fillColor: color, // لون التعبئة
-                                    color: 'black', // لون الحواف
-                                    weight: 1, // سمك الحواف
-                                    opacity: 1, // شفافية الحواف
-                                    fillOpacity: 0.8 // شفافية التعبئة
+                                    radius: 5,
+                                    fillColor: color,
+                                    color: 'black',
+                                    weight: 1,
+                                    opacity: 1,
+                                    fillOpacity: 0.8
                                 });
                             } else {
-                                return L.marker(latlng); // الافتراضي للطبقات الأخرى
+                                return L.marker(latlng);
                             }
                         },
-                        style: { color: color }, // لون الخطوط للطبقات الأخرى
+                        style: { color: color },
                         onEachFeature: (feature, layer) => {
                             if (feature.properties) {
                                 layer.bindPopup(Object.entries(feature.properties)
@@ -110,12 +109,11 @@
 
                     if (name === 'Accidents') {
                         accidentsLayer = layer;
-                        layer.setZIndex(999); // تحديد zIndex عالٍ
+                        layer.setZIndex(999);
                     }
 
                     layer.addTo(map);
 
-                    // إذا كانت الطبقة هي الحوادث، اجعلها فوق باقي الطبقات
                     if (name === 'Accidents') {
                         layer.bringToFront();
                     }
@@ -169,7 +167,6 @@
                 return;
             }
 
-            // البحث عن الشوارع داخل طبقة Roads
             const matchingRoads = [];
             roadsLayer.eachLayer(layer => {
                 const roadName = layer.feature.properties.ROAD_N_A?.toLowerCase() || '';
@@ -179,21 +176,14 @@
             });
 
             if (matchingRoads.length > 0) {
-                // تكبير الخريطة إلى العنصر الأول
                 const bounds = L.featureGroup(matchingRoads).getBounds();
                 map.fitBounds(bounds, { padding: [20, 20] });
 
-                // فتح جميع النوافذ المنبثقة المتعلقة بالنتائج
-                matchingRoads.forEach(roadLayer => {
-                    const roadName = roadLayer.feature.properties.ROAD_N_A;
-                    roadLayer.bindPopup(`<b>Street Name:</b> ${roadName}`).openPopup();
-                });
+                const roadName = matchingRoads[0].feature.properties.ROAD_N_A;
 
-                // حساب عدد الحوادث الواقعة على هذا الشارع
                 let accidentCount = 0;
                 accidentsLayer.eachLayer(accidentLayer => {
                     const accidentLatLng = accidentLayer.getLatLng();
-                    // التحقق إذا كان الحادث يقع على نفس الشارع باستخدام المسافة بين الحادث والشارع
                     matchingRoads.forEach(roadLayer => {
                         if (roadLayer.getBounds().contains(accidentLatLng)) {
                             accidentCount++;
@@ -201,8 +191,10 @@
                     });
                 });
 
-                // عرض عدد الحوادث
-                alert(`Total accidents on "${query}" road: ${accidentCount}`);
+                matchingRoads[0].bindPopup(`
+                    <b>Street Name:</b> ${roadName}<br>
+                    <b>Accidents Count:</b> ${accidentCount}
+                `).openPopup();
             } else {
                 alert(`No roads found matching "${query}".`);
             }
