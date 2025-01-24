@@ -184,7 +184,12 @@
                 map.fitBounds(bounds);
 
                 // فتح الـ popup لأول نتيجة
-                matchingFeatures[0].openPopup();
+                matchingFeatures.forEach(layer => {
+                    layer.bindPopup(`
+                        <b>Road Name:</b> ${layer.feature.properties.ROAD_N_A || 'N/A'}<br>
+                        <b>Other Info:</b> ${layer.feature.properties.OTHER_INFO || 'N/A'}
+                    `).openPopup();
+                });
             } else {
                 alert(`No roads found matching "${query}".`);
             }
