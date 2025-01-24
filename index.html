@@ -160,16 +160,41 @@
 
         searchBox.addTo(map);
 
-        // إضافة وظيفة احتساب الحوادث على الشارع
-        const countAccidentsOnRoad = (roadName) => {
+        // دالة لحساب المسافة بين نقطتين جغرافيتين (إحداثيات)
+        const getDistance = (lat1, lon1, lat2, lon2) => {
+            const R = 6371e3; // نصف قطر الأرض بالمتر
+            const φ1 = lat1 * Math.PI / 180;
+            const φ2 = lat2 * Math.PI / 180;
+            const Δφ = (lat2 - lat1) * Math.PI / 180;
+            const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c; // المسافة بالمتر
+        };
+
+        // دالة لحساب عدد الحوادث التي تقع بالقرب من الطريق
+        const countAccidentsNearRoad = (roadLayer) => {
             let accidentCount = 0;
 
-            // التحقق من الحوادث التي تتوافق مع اسم الشارع
-            accidentsLayer.eachLayer(layer => {
-                const accidentRoad = layer.feature.properties.ROAD_NAME?.toLowerCase() || '';
-                if (accidentRoad.includes(roadName.toLowerCase())) {
-                    accidentCount++;
-                }
+            // الحصول على إحداثيات الطريق (المحدد بالطبقة)
+            roadLayer.eachLayer(road => {
+                const roadLatLngs = road.getLatLngs(); // الحصول على إحداثيات الطريق (إذا كان الخط متعدد النقاط)
+                
+                accidentsLayer.eachLayer(accident => {
+                    const accidentLatLng = accident.getLatLng(); // إحداثيات الحادث
+                    for (const roadLatLng of roadLatLngs) {
+                        // حساب المسافة بين الحادث والطريق
+                        const distance = getDistance(accidentLatLng.lat, accidentLatLng.lng, roadLatLng.lat, roadLatLng.lng);
+                        if (distance < 50) { // إذا كانت المسافة أقل من 50 مترًا، اعتبرها حادثة على الطريق
+                            accidentCount++;
+                            break; // إذا تم العثور على حادث قريب من الطريق، توقف عن البحث في باقي إحداثيات الطريق
+                        }
+                    }
+                });
             });
 
             return accidentCount;
@@ -198,9 +223,9 @@
                 const bounds = L.featureGroup(matchingFeatures).getBounds();
                 map.fitBounds(bounds, { padding: [20, 20] }); // إضافة padding للمزيد من المساحة حول العناصر
 
-                // فتح نافذة الـ popup تلقائيًا لأول نتيجة مطابقة مع عرض اسم الشارع وعدد الحوادث
+                // فتح نافذة الـ popup تلقائيًا لأول نتيجة مطابقة مع عرض اسم الشارع وعدد الحوادث القريبة
                 const roadName = matchingFeatures[0].feature.properties.ROAD_N_A;
-                const accidentCount = countAccidentsOnRoad(roadName); // حساب عدد الحوادث
+                const accidentCount = countAccidentsNearRoad(matchingFeatures[0]); // حساب عدد الحوادث بالقرب من الطريق
 
                 matchingFeatures[0].bindPopup(`
                     <b>Street Name:</b> ${roadName}<br>
