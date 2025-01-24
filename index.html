@@ -66,7 +66,7 @@
             { file: 'Roads.geojson', color: 'black', name: 'Roads' }
         ];
 
-        let roadsLayer;
+        let roadsLayer, accidentsLayer;
 
         // دالة لتحميل وإضافة ملف GeoJSON إلى الخريطة
         const loadGeoJSON = ({ file, color, name }) => {
@@ -108,7 +108,17 @@
                         roadsLayer = layer;
                     }
 
+                    if (name === 'Accidents') {
+                        accidentsLayer = layer;
+                    }
+
                     layer.addTo(map);
+
+                    // إذا كانت الطبقة هي الحوادث، اجعلها فوق باقي الطبقات
+                    if (name === 'Accidents') {
+                        layer.bringToFront();
+                    }
+
                     console.log(`${name} loaded successfully`);
                 })
                 .catch(error => {
