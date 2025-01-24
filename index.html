@@ -66,40 +66,22 @@
             { file: 'Roads.geojson', color: 'black', name: 'Roads' }
         ];
 
-        let roadsLayer, accidentsLayer;
+        let roadsLayer;
 
         // دالة لتحميل وإضافة ملف GeoJSON إلى الخريطة
         const loadGeoJSON = ({ file, color, name }) => {
             fetch(file)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Error loading ${name}: ${response.status} ${response.statusText}`);
-                    }
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
                     const layer = L.geoJSON(data, {
-                        pointToLayer: (feature, latlng) => {
-                            // استخدام دائرة بدلاً من علامة افتراضية للحوادث
-                            if (name === 'Accidents') {
-                                return L.circleMarker(latlng, {
-                                    radius: 5, // حجم النقطة
-                                    fillColor: color, // لون التعبئة
-                                    color: 'black', // لون الحواف
-                                    weight: 1, // سمك الحواف
-                                    opacity: 1, // شفافية الحواف
-                                    fillOpacity: 0.8 // شفافية التعبئة
-                                });
-                            } else {
-                                return L.marker(latlng); // الافتراضي للطبقات الأخرى
-                            }
-                        },
-                        style: { color: color }, // لون الخطوط للطبقات الأخرى
+                        style: { color: color },
                         onEachFeature: (feature, layer) => {
                             if (feature.properties) {
-                                layer.bindPopup(Object.entries(feature.properties)
-                                    .map(([key, value]) => `<b>${key}:</b> ${value}`)
-                                    .join('<br>'));
+                                layer.bindPopup(
+                                    `<b>${name}:</b> ${Object.entries(feature.properties)
+                                        .map(([key, value]) => `<b>${key}:</b> ${value}`)
+                                        .join('<br>')}`
+                                );
                             }
                         }
                     });
@@ -108,43 +90,13 @@
                         roadsLayer = layer;
                     }
 
-                    if (name === 'Accidents') {
-                        accidentsLayer = layer;
-                        layer.setZIndex(999); // تحديد zIndex عالٍ
-                    }
-
                     layer.addTo(map);
-
-                    // إذا كانت الطبقة هي الحوادث، اجعلها فوق باقي الطبقات
-                    if (name === 'Accidents') {
-                        layer.bringToFront();
-                    }
-
-                    console.log(`${name} loaded successfully`);
                 })
-                .catch(error => {
-                    console.error(`Error loading ${name}:`, error);
-                });
+                .catch(error => console.error(`Error loading ${name}:`, error));
         };
 
         // تحميل جميع الطبقات
         geojsonFiles.forEach(loadGeoJSON);
-
-        // إضافة وسيلة الإيضاح (Legend)
-        const legend = L.control({ position: 'bottomright' });
-
-        legend.onAdd = () => {
-            const div = L.DomUtil.create('div', 'legend');
-            div.innerHTML = `
-                <h4>Legend</h4>
-                <div><span style="background: red"></span> Accidents</div>
-                <div><span style="background: orange"></span> Ramallah</div>
-                <div><span style="background: black"></span> Roads</div>
-            `;
-            return div;
-        };
-
-        legend.addTo(map);
 
         // إنشاء مربع البحث
         const searchBox = L.control({ position: 'topleft' });
@@ -170,27 +122,17 @@
             }
 
             // البحث عن الشوارع داخل طبقة Roads
-            const matchingFeatures = [];
+            let found = false;
             roadsLayer.eachLayer(layer => {
                 const roadName = layer.feature.properties.ROAD_N_A?.toLowerCase() || '';
                 if (roadName.includes(query)) {
-                    matchingFeatures.push(layer);
+                    map.setView(layer.getBounds().getCenter(), 16); // تكبير الخريطة إلى الشارع
+                    layer.openPopup(); // فتح النافذة المنبثقة تلقائيًا
+                    found = true;
                 }
             });
 
-            if (matchingFeatures.length > 0) {
-                // تكبير الخريطة إلى العنصر الأول وتحديده
-                const bounds = L.featureGroup(matchingFeatures).getBounds();
-                map.fitBounds(bounds);
-
-                // فتح الـ popup لأول نتيجة
-                matchingFeatures.forEach(layer => {
-                    layer.bindPopup(`
-                        <b>Road Name:</b> ${layer.feature.properties.ROAD_N_A || 'N/A'}<br>
-                        <b>Other Info:</b> ${layer.feature.properties.OTHER_INFO || 'N/A'}
-                    `).openPopup();
-                });
-            } else {
+            if (!found) {
                 alert(`No roads found matching "${query}".`);
             }
         });
