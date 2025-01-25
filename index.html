@@ -63,7 +63,7 @@
         ];
 
         let roadsLayer, accidentsLayer;
-        const roadNames = new Set(); // لتخزين أسماء الشوارع الفريدة
+        const roadNames = new Set(); // Set لتخزين أسماء الشوارع الفريدة
 
         const loadGeoJSON = ({ file, color, name }) => {
             fetch(file)
@@ -73,6 +73,20 @@
                 })
                 .then(data => {
                     const layer = L.geoJSON(data, {
+                        pointToLayer: (feature, latlng) => {
+                            if (name === 'Accidents') {
+                                return L.circleMarker(latlng, {
+                                    radius: 5,
+                                    fillColor: color,
+                                    color: 'black',
+                                    weight: 1,
+                                    opacity: 1,
+                                    fillOpacity: 0.8
+                                });
+                            } else {
+                                return L.marker(latlng);
+                            }
+                        },
                         style: { color: color },
                         onEachFeature: (feature, layer) => {
                             if (feature.properties) {
