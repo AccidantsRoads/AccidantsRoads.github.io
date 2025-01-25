@@ -63,6 +63,7 @@
         ];
 
         let roadsLayer, accidentsLayer;
+        const roadNames = new Set(); // لتخزين أسماء الشوارع الفريدة
 
         const loadGeoJSON = ({ file, color, name }) => {
             fetch(file)
@@ -72,36 +73,42 @@
                 })
                 .then(data => {
                     const layer = L.geoJSON(data, {
-                        pointToLayer: (feature, latlng) => {
-                            if (name === 'Accidents') {
-                                return L.circleMarker(latlng, {
-                                    radius: 5,
-                                    fillColor: color,
-                                    color: 'black',
-                                    weight: 1,
-                                    opacity: 1,
-                                    fillOpacity: 0.8
-                                });
-                            } else {
-                                return L.marker(latlng);
-                            }
-                        },
                         style: { color: color },
                         onEachFeature: (feature, layer) => {
                             if (feature.properties) {
                                 layer.bindPopup(Object.entries(feature.properties)
                                     .map(([key, value]) => `<b>${key}:</b> ${value}`)
                                     .join('<br>'));
+
+                                // جمع أسماء الشوارع
+                                if (name === 'Roads' && feature.properties.ROAD_N_A) {
+                                    roadNames.add(feature.properties.ROAD_N_A);
+                                }
                             }
                         }
                     });
 
-                    if (name === 'Roads') roadsLayer = layer;
+                    if (name === 'Roads') {
+                        roadsLayer = layer;
+                        updateSearchList(); // تحديث قائمة البحث
+                    }
                     if (name === 'Accidents') accidentsLayer = layer;
 
                     layer.addTo(map);
                 })
                 .catch(error => console.error(`Error loading ${name}:`, error));
+        };
+
+        const updateSearchList = () => {
+            const dataList = document.getElementById('roadNames');
+            dataList.innerHTML = ''; // مسح الخيارات القديمة
+            roadNames.forEach(name => {
+                const option = document.createElement('option');
+                option.value = name;
+                dataList.appendChild(option);
+            });
+
+            console.log("All Road Names:", Array.from(roadNames)); // عرض الأسماء في وحدة التحكم
         };
 
         geojsonFiles.forEach(loadGeoJSON);
@@ -126,7 +133,8 @@
         searchBox.onAdd = () => {
             const div = L.DomUtil.create('div', 'search-box');
             div.innerHTML = `
-                <input type="text" id="searchInput" placeholder="Search for a road..." />
+                <input type="text" id="searchInput" placeholder="Search for a road..." list="roadNames" />
+                <datalist id="roadNames"></datalist>
                 <button id="searchButton">Search</button>
             `;
             return div;
