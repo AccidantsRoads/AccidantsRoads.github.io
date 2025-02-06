@@ -108,6 +108,11 @@
                     if (name === 'Accidents') accidentsLayer = layer;
                     if (name === 'Ramallah') ramallahLayer = layer;
 
+                    // إضافة الطبقات فقط بعد تحميلها بنجاح
+                    if (roadsLayer && accidentsLayer && ramallahLayer) {
+                        updateLayerControl();
+                    }
+
                     layer.addTo(map);
                 })
                 .catch(error => console.error(`Error loading ${name}:`, error));
@@ -123,6 +128,23 @@
             });
 
             console.log("All Road Names:", Array.from(roadNames));
+        };
+
+        const updateLayerControl = () => {
+            const baseLayers = {
+                "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors'
+                })
+            };
+
+            const overlayLayers = {
+                "Accidents": accidentsLayer || L.layerGroup(),
+                "Ramallah": ramallahLayer || L.layerGroup(),
+                "Roads": roadsLayer || L.layerGroup()
+            };
+
+            L.control.layers(baseLayers, overlayLayers).addTo(map);
         };
 
         geojsonFiles.forEach(loadGeoJSON);
@@ -200,21 +222,6 @@
                 alert(`No roads found matching "${query}".`);
             }
         });
-
-        const baseLayers = {
-            "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap contributors'
-            })
-        };
-
-        const overlayLayers = {
-            "Accidents": accidentsLayer || L.layerGroup(),
-            "Ramallah": ramallahLayer || L.layerGroup(),
-            "Roads": roadsLayer || L.layerGroup()
-        };
-
-        L.control.layers(baseLayers, overlayLayers).addTo(map);
     </script>
 </body>
 </html>
