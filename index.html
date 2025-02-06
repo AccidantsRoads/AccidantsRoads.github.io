@@ -63,7 +63,7 @@
         ];
 
         let roadsLayer, accidentsLayer, ramallahLayer;
-        const roadNames = new Set(); // Set لتخزين أسماء الشوارع الفريدة
+        const roadNames = new Set();
 
         const loadGeoJSON = ({ file, color, name }) => {
             fetch(file)
@@ -94,7 +94,6 @@
                                     .map(([key, value]) => `<b>${key}:</b> ${value}`)
                                     .join('<br>'));
 
-                                // جمع أسماء الشوارع
                                 if (name === 'Roads' && feature.properties.ROAD_N_A) {
                                     roadNames.add(feature.properties.ROAD_N_A);
                                 }
@@ -104,7 +103,7 @@
 
                     if (name === 'Roads') {
                         roadsLayer = layer;
-                        updateSearchList(); // تحديث قائمة البحث
+                        updateSearchList();
                     }
                     if (name === 'Accidents') accidentsLayer = layer;
                     if (name === 'Ramallah') ramallahLayer = layer;
@@ -116,14 +115,14 @@
 
         const updateSearchList = () => {
             const dataList = document.getElementById('roadNames');
-            dataList.innerHTML = ''; // مسح الخيارات القديمة
+            dataList.innerHTML = '';
             roadNames.forEach(name => {
                 const option = document.createElement('option');
                 option.value = name;
                 dataList.appendChild(option);
             });
 
-            console.log("All Road Names:", Array.from(roadNames)); // عرض الأسماء في وحدة التحكم
+            console.log("All Road Names:", Array.from(roadNames));
         };
 
         geojsonFiles.forEach(loadGeoJSON);
@@ -202,7 +201,6 @@
             }
         });
 
-        // إضافة أداة التحكم بالطبقات
         const baseLayers = {
             "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
@@ -211,9 +209,9 @@
         };
 
         const overlayLayers = {
-            "Accidents": accidentsLayer,
-            "Ramallah": ramallahLayer,
-            "Roads": roadsLayer
+            "Accidents": accidentsLayer || L.layerGroup(),
+            "Ramallah": ramallahLayer || L.layerGroup(),
+            "Roads": roadsLayer || L.layerGroup()
         };
 
         L.control.layers(baseLayers, overlayLayers).addTo(map);
