@@ -62,7 +62,7 @@
             { file: 'Roads.geojson', color: 'black', name: 'Roads' }
         ];
 
-        let roadsLayer, accidentsLayer;
+        let roadsLayer, accidentsLayer, ramallahLayer;
         const roadNames = new Set(); // Set لتخزين أسماء الشوارع الفريدة
 
         const loadGeoJSON = ({ file, color, name }) => {
@@ -107,6 +107,7 @@
                         updateSearchList(); // تحديث قائمة البحث
                     }
                     if (name === 'Accidents') accidentsLayer = layer;
+                    if (name === 'Ramallah') ramallahLayer = layer;
 
                     layer.addTo(map);
                 })
@@ -200,6 +201,22 @@
                 alert(`No roads found matching "${query}".`);
             }
         });
+
+        // إضافة أداة التحكم بالطبقات
+        const baseLayers = {
+            "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            })
+        };
+
+        const overlayLayers = {
+            "Accidents": accidentsLayer,
+            "Ramallah": ramallahLayer,
+            "Roads": roadsLayer
+        };
+
+        L.control.layers(baseLayers, overlayLayers).addTo(map);
     </script>
 </body>
 </html>
