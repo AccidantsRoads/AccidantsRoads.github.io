@@ -74,7 +74,8 @@
     const loadGeoJSON = ({ file, color, name }) => {
       fetch(file)
         .then(response => {
-          if (!response.ok) throw new Error(`Error loading ${name}: ${response.status} ${response.statusText}`);
+          if (!response.ok)
+            throw new Error(`Error loading ${name}: ${response.status} ${response.statusText}`);
           return response.json();
         })
         .then(data => {
@@ -130,7 +131,7 @@
     // تحديث قائمة أسماء الشوارع (لأداة البحث عن الطرق)
     const updateSearchList = () => {
       const dataList = document.getElementById('roadNames');
-      if(dataList) {
+      if (dataList) {
         dataList.innerHTML = '';
         roadNames.forEach(name => {
           const option = document.createElement('option');
@@ -263,14 +264,17 @@
         return;
       }
 
-      // إزالة أي علامات سابقة من البحث
+      // إزالة العلامات المميزة السابقة
       highlightedAccidentsGroup.clearLayers();
 
       const matchingAccidents = [];
+      const selected = selectedSeverity.trim().toLowerCase(); // تحويل القيمة المختارة إلى أحرف صغيرة
+
       accidentsLayer.eachLayer(layer => {
-        // نفترض أن خاصية الشدة مسماة "severity" في بيانات GeoJSON
-        const severity = layer.feature.properties.severity ? layer.feature.properties.severity.trim() : '';
-        if (severity === selectedSeverity) {
+        // التأكد من أن الخاصية موجودة، وإزالة المسافات الزائدة وتحويل القيمة إلى أحرف صغيرة
+        const severity = (layer.feature.properties.severity ? layer.feature.properties.severity.trim() : '').toLowerCase();
+        console.log("قيمة الشدة للحادث:", severity); // للتأكد من القيم الموجودة في بيانات الحادث
+        if (severity === selected) {
           matchingAccidents.push(layer);
         }
       });
