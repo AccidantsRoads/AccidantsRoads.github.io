@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -31,13 +31,17 @@
       border-radius: 5px;
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
       font-size: 14px;
+      margin: 5px;
     }
-    .search-box input {
+    .search-box input,
+    .search-box select {
       width: 200px;
       padding: 5px;
+      margin-bottom: 5px;
     }
     .search-box button {
       padding: 5px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -45,6 +49,7 @@
   <div id="map"></div>
 
   <script>
+    // إنشاء الخريطة وضبط مركزها
     const map = L.map('map').setView([31.9051503, 35.1921579], 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -52,6 +57,7 @@
       attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
+    // مصفوفة ملفات GeoJSON مع خصائص اللون والاسم
     const geojsonFiles = [
       { file: 'Accidentss.geojson', color: 'red', name: 'Accidents' },
       { file: 'Ramallah.geojson', color: 'orange', name: 'Ramallah' },
@@ -61,17 +67,21 @@
     let roadsLayer, accidentsLayer, ramallahLayer;
     const roadNames = new Set();
 
+    // طبقة لتجميع علامات الحوادث المميزة (بعد البحث)
+    const highlightedAccidentsGroup = L.layerGroup().addTo(map);
+
+    // دالة تحميل بيانات GeoJSON
     const loadGeoJSON = ({ file, color, name }) => {
       fetch(file)
         .then(response => {
-          if (!response.ok)
-            throw new Error(`Error loading ${name}: ${response.status} ${response.statusText}`);
+          if (!response.ok) throw new Error(`Error loading ${name}: ${response.status} ${response.statusText}`);
           return response.json();
         })
         .then(data => {
           const layer = L.geoJSON(data, {
             pointToLayer: (feature, latlng) => {
               if (name === 'Accidents') {
+                // عرض الحوادث بدائرة صغيرة
                 return L.circleMarker(latlng, {
                   radius: 5,
                   fillColor: color,
@@ -92,7 +102,7 @@
                     .map(([key, value]) => `<b>${key}:</b> ${value}`)
                     .join('<br>')
                 );
-
+                // تجميع أسماء الشوارع من بيانات الطرق
                 if (name === 'Roads' && feature.properties.ROAD_N_A) {
                   roadNames.add(feature.properties.ROAD_N_A);
                 }
@@ -107,7 +117,7 @@
           if (name === 'Accidents') accidentsLayer = layer;
           if (name === 'Ramallah') ramallahLayer = layer;
 
-          // إضافة الطبقات فقط بعد تحميلها بنجاح
+          // إضافة عناصر التحكم بعد تحميل كل الطبقات
           if (roadsLayer && accidentsLayer && ramallahLayer) {
             updateLayerControl();
           }
@@ -117,18 +127,21 @@
         .catch(error => console.error(`Error loading ${name}:`, error));
     };
 
+    // تحديث قائمة أسماء الشوارع (لأداة البحث عن الطرق)
     const updateSearchList = () => {
       const dataList = document.getElementById('roadNames');
-      dataList.innerHTML = '';
-      roadNames.forEach(name => {
-        const option = document.createElement('option');
-        option.value = name;
-        dataList.appendChild(option);
-      });
-
+      if(dataList) {
+        dataList.innerHTML = '';
+        roadNames.forEach(name => {
+          const option = document.createElement('option');
+          option.value = name;
+          dataList.appendChild(option);
+        });
+      }
       console.log("All Road Names:", Array.from(roadNames));
     };
 
+    // إضافة عناصر التحكم في الطبقات
     const updateLayerControl = () => {
       const baseLayers = {
         "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -146,9 +159,10 @@
       L.control.layers(baseLayers, overlayLayers).addTo(map);
     };
 
+    // تحميل الملفات
     geojsonFiles.forEach(loadGeoJSON);
 
-    // إضافة مفتاح الخريطة
+    // إضافة مفتاح الخريطة (Legend)
     const legend = L.control({ position: 'bottomright' });
     legend.onAdd = () => {
       const div = L.DomUtil.create('div', 'legend');
@@ -162,24 +176,24 @@
     };
     legend.addTo(map);
 
-    // أداة البحث عن الطرق (موجودة مسبقاً)
-    const searchBox = L.control({ position: 'topleft' });
-    searchBox.onAdd = () => {
+    // أداة البحث عن الطرق (البحث بالنص)
+    const roadSearchBox = L.control({ position: 'topleft' });
+    roadSearchBox.onAdd = () => {
       const div = L.DomUtil.create('div', 'search-box');
       div.innerHTML = `
-        <input type="text" id="searchInput" placeholder="Search for a road..." list="roadNames" />
+        <input type="text" id="searchInput" placeholder="ابحث عن شارع..." list="roadNames" />
         <datalist id="roadNames"></datalist>
-        <button id="searchButton">Search</button>
+        <button id="searchButton">ابحث عن الطريق</button>
       `;
       return div;
     };
-    searchBox.addTo(map);
+    roadSearchBox.addTo(map);
 
     document.getElementById('searchButton').addEventListener('click', () => {
       const query = document.getElementById('searchInput').value.toLowerCase();
 
       if (!roadsLayer || !accidentsLayer) {
-        alert('One or both layers are not loaded yet. Please wait.');
+        alert('طبقة الطرق أو الحوادث لم يتم تحميلها بعد. يرجى الانتظار.');
         return;
       }
 
@@ -196,7 +210,6 @@
         map.fitBounds(bounds, { padding: [20, 20] });
 
         const roadName = matchingRoads[0].feature.properties.ROAD_N_A;
-
         let accidentCount = 0;
         accidentsLayer.eachLayer(accidentLayer => {
           const accidentLatLng = accidentLayer.getLatLng();
@@ -208,61 +221,77 @@
         });
 
         const roadPopup = matchingRoads[0].bindPopup(`
-          <b>Street Name:</b> ${roadName}<br>
-          <b>Accidents Count:</b> ${accidentCount}
+          <b>اسم الشارع:</b> ${roadName}<br>
+          <b>عدد الحوادث:</b> ${accidentCount}
         `);
 
         map.once('zoomend', () => {
           roadPopup.openPopup();
         });
       } else {
-        alert(`No roads found matching "${query}".`);
+        alert(`لم يتم العثور على طريق مطابق لكلمة "${query}".`);
       }
     });
 
-    // أداة البحث عن الحوادث حسب حقل "severity"
+    // أداة البحث عن الحوادث بحسب الشدة (باستخدام قائمة منسدلة)
     const accidentSearchBox = L.control({ position: 'topright' });
     accidentSearchBox.onAdd = () => {
       const div = L.DomUtil.create('div', 'search-box');
       div.innerHTML = `
-        <input type="text" id="accidentSearchInput" placeholder="Search accident severity..." />
-        <button id="accidentSearchButton">Search Accident</button>
+        <select id="severitySelect">
+          <option value="">اختر شدة الحادث</option>
+          <option value="بسيط">بسيط</option>
+          <option value="متوسط الشدة">متوسط الشدة</option>
+          <option value="خطير">خطير</option>
+          <option value="مميت">مميت</option>
+        </select>
+        <button id="accidentSearchButton">ابحث عن الحوادث</button>
       `;
       return div;
     };
     accidentSearchBox.addTo(map);
 
     document.getElementById('accidentSearchButton').addEventListener('click', () => {
-      const query = document.getElementById('accidentSearchInput').value.toLowerCase();
-
-      if (!accidentsLayer) {
-        alert('Accidents layer is not loaded yet. Please wait.');
+      const selectedSeverity = document.getElementById('severitySelect').value;
+      if (!selectedSeverity) {
+        alert("يرجى اختيار شدة الحادث من القائمة.");
         return;
       }
 
+      if (!accidentsLayer) {
+        alert('طبقة الحوادث لم يتم تحميلها بعد. يرجى الانتظار.');
+        return;
+      }
+
+      // إزالة أي علامات سابقة من البحث
+      highlightedAccidentsGroup.clearLayers();
+
       const matchingAccidents = [];
       accidentsLayer.eachLayer(layer => {
-        // نفترض وجود حقل "severity" في بيانات الحوادث
-        const severity = layer.feature.properties.severity ? layer.feature.properties.severity.toLowerCase() : '';
-        if (severity.includes(query)) {
+        // نفترض أن خاصية الشدة مسماة "severity" في بيانات GeoJSON
+        const severity = layer.feature.properties.severity ? layer.feature.properties.severity.trim() : '';
+        if (severity === selectedSeverity) {
           matchingAccidents.push(layer);
         }
       });
 
       if (matchingAccidents.length > 0) {
-        const bounds = L.featureGroup(matchingAccidents).getBounds();
-        map.fitBounds(bounds, { padding: [20, 20] });
-
-        const accidentSeverity = matchingAccidents[0].feature.properties.severity || 'Unknown';
-        const accidentPopup = matchingAccidents[0].bindPopup(`
-          <b>Accident Severity:</b> ${accidentSeverity}
-        `);
-
-        map.once('zoomend', () => {
-          accidentPopup.openPopup();
+        matchingAccidents.forEach(accidentLayer => {
+          const latlng = accidentLayer.getLatLng();
+          // إنشاء علامة مميزة على موقع الحادث
+          const highlightedMarker = L.circleMarker(latlng, {
+            radius: 8,
+            color: 'blue',
+            fillColor: 'yellow',
+            weight: 2,
+            fillOpacity: 0.9
+          }).bindPopup(`<b>شدة الحادث:</b> ${accidentLayer.feature.properties.severity}`);
+          highlightedMarker.addTo(highlightedAccidentsGroup);
         });
+        const bounds = L.featureGroup(highlightedAccidentsGroup.getLayers()).getBounds();
+        map.fitBounds(bounds, { padding: [20, 20] });
       } else {
-        alert(`No accidents found matching "${query}".`);
+        alert(`لم يتم العثور على حوادث بشدة "${selectedSeverity}".`);
       }
     });
   </script>
