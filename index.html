@@ -160,7 +160,7 @@
       L.control.layers(baseLayers, overlayLayers).addTo(map);
     };
 
-    // تحميل الملفات
+    // تحميل ملفات GeoJSON
     geojsonFiles.forEach(loadGeoJSON);
 
     // إضافة مفتاح الخريطة (Legend)
@@ -270,10 +270,11 @@
       const matchingAccidents = [];
       const selected = selectedSeverity.trim().toLowerCase(); // تحويل القيمة المختارة إلى أحرف صغيرة
 
+      // البحث في طبقة الحوادث مع طباعة القيم للتأكد
       accidentsLayer.eachLayer(layer => {
-        // التأكد من أن الخاصية موجودة، وإزالة المسافات الزائدة وتحويل القيمة إلى أحرف صغيرة
-        const severity = (layer.feature.properties.severity ? layer.feature.properties.severity.trim() : '').toLowerCase();
-        console.log("قيمة الشدة للحادث:", severity); // للتأكد من القيم الموجودة في بيانات الحادث
+        const rawSeverity = layer.feature.properties.severity || "";
+        const severity = rawSeverity.trim().toLowerCase();
+        console.log("قيمة الشدة للحادث:", severity, " | القيمة الأصلية:", rawSeverity);
         if (severity === selected) {
           matchingAccidents.push(layer);
         }
