@@ -172,6 +172,9 @@
                 <input type="text" id="searchInput" placeholder="Search for a road..." list="roadNames" />
                 <datalist id="roadNames"></datalist>
                 <button id="searchButton">Search</button>
+                <br><br>
+                <input type="text" id="severitySearchInput" placeholder="Search by severity..." />
+                <button id="severitySearchButton">Search by Severity</button>
             `;
             return div;
         };
@@ -220,6 +223,34 @@
                 });
             } else {
                 alert(`No roads found matching "${query}".`);
+            }
+        });
+
+        document.getElementById('severitySearchButton').addEventListener('click', () => {
+            const severityQuery = document.getElementById('severitySearchInput').value.toLowerCase();
+
+            if (!accidentsLayer) {
+                alert('Accidents layer is not loaded yet. Please wait.');
+                return;
+            }
+
+            const matchingAccidents = [];
+            accidentsLayer.eachLayer(layer => {
+                const severity = layer.feature.properties.severity?.toLowerCase() || '';
+                if (severity.includes(severityQuery)) {
+                    matchingAccidents.push(layer);
+                }
+            });
+
+            if (matchingAccidents.length > 0) {
+                const bounds = L.featureGroup(matchingAccidents).getBounds();
+                map.fitBounds(bounds, { padding: [20, 20] });
+
+                matchingAccidents.forEach(accident => {
+                    accident.openPopup();
+                });
+            } else {
+                alert(`No accidents found with severity "${severityQuery}".`);
             }
         });
     </script>
