@@ -87,7 +87,19 @@
                                 return L.marker(latlng);
                             }
                         },
-                        style: { color: color },
+                        style: (feature) => {
+                            if (name === 'Roads') {
+                                return {
+                                    color: color, // لون الشارع
+                                    weight: 3,    // سماكة الخط
+                                    opacity: 1,   // شفافية الخط
+                                    fillOpacity: 0, // شفافية التعبئة (غير مستخدمة في الخطوط)
+                                    dashArray: '5, 5' // نمط الخط المتقطع (اختياري)
+                                };
+                            } else {
+                                return { color: color };
+                            }
+                        },
                         onEachFeature: (feature, layer) => {
                             if (feature.properties) {
                                 layer.bindPopup(Object.entries(feature.properties)
